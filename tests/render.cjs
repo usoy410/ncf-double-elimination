@@ -40,6 +40,9 @@ const before=vm.runInContext('JSON.stringify(data)',ctx);
   assert.equal(element('#edit').hidden,true);
   assert.equal(element('#reset').hidden,true);
   assert.equal(element('#team-dialog').open,false);
+  assert(element('#auth-bar').innerHTML.includes('>Login</button>'));
+  ctx.window.location.assign = path => { assert.equal(path, '/login'); };
+  element('#auth-btn').onclick();
   let loginArgs;
   ctx.captureLogin=(...args)=>{loginArgs=args;return {success:false}};
   vm.runInContext('API.login = captureLogin',ctx);
@@ -47,5 +50,33 @@ const before=vm.runInContext('JSON.stringify(data)',ctx);
   await element('#auth-form').onsubmit({preventDefault(){}});
   assert.deepEqual(loginArgs,['test-passcode']);
   assert(!fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8').includes('organizer-email'));
+  ctx.window.location.pathname='/login';
+  ctx.window.location.replace=path=>{assert.equal(path,'/');ctx.window.location.pathname=path};
+  ctx.captureLogin=()=>({success:true});
+  vm.runInContext('API.login = captureLogin',ctx);
+  await element('#auth-form').onsubmit({preventDefault(){}});
+  assert.equal(ctx.window.location.pathname,'/');
+  console.log('PASS: Login navigates to /login; successful login returns to /.');
   console.log('PASS: spectator actions blocked; organizer controls shown; logout hides controls and closes editor; passcode-only login.');
 })().catch(err=>{console.error(err);process.exitCode=1});
+
+// Verify direct navigation and the former organizer URL on fresh page loads.
+for (const [pathname,authenticated,destination,opensLogin] of [
+  ['/login',false,null,true],
+  ['/login/',false,null,true],
+  ['/login',true,'/',false],
+  ['/organizer',false,'/login',false],
+]) {
+  const nodes=new Map();
+  const lookup=selector=>{
+    if(!nodes.has(selector)) nodes.set(selector,{innerHTML:'',style:{},setAttribute(){},querySelectorAll(){return []},showModal(){this.open=true},close(){this.open=false}});
+    return nodes.get(selector);
+  };
+  let redirected=null;
+  const page={...ctx,document:{querySelector:lookup,querySelectorAll:()=>[]},window:{location:{pathname,replace(path){redirected=path}}},TournamentAPI:{isOrganizer:()=>authenticated,getProfile:()=>null}};
+  vm.createContext(page);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8'),page);
+  assert.equal(redirected,destination);
+  assert.equal(Boolean(lookup('#auth-dialog').open),opensLogin);
+}
+console.log('PASS: direct /login access, existing sessions, and legacy organizer redirect.');

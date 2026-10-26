@@ -99,14 +99,15 @@ function updateAuthUI() {
   if (!authBar) return;
   const profile = API.getProfile();
 
-  const onOrganizerRoute = window.location.pathname.replace(/\/$/, '') === '/organizer';
-  authBar.hidden = !onOrganizerRoute;
-  if (isOrg && onOrganizerRoute) {
+  authBar.hidden = false;
+  if (isOrg) {
     authBar.innerHTML = `<span class="auth-badge">★ Organizer: <b>${esc(profile?.name || 'Marshall')}</b> <button type="button" class="logout-btn" id="logout-btn">Log out</button></span>`;
     const logoutBtn = $('#logout-btn');
-    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); $('#auth-dialog')?.showModal(); };
+    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); if (selected !== null && $('#match-dialog')?.open) showMatch(selected); };
   } else {
-    authBar.innerHTML = '';
+    authBar.innerHTML = '<button id="auth-btn" class="auth-btn" type="button">Login</button>';
+    const authBtn = $('#auth-btn');
+    if (authBtn) authBtn.onclick = () => window.location.assign('/login');
   }
 }
 
@@ -381,6 +382,10 @@ if (authForm) {
 
     if (res && res.success) {
       $('#auth-dialog')?.close();
+      if (window.location.pathname.replace(/\/$/, '') === '/login') {
+        window.location.replace('/');
+        return;
+      }
       updateAuthUI();
       render();
       notify(`Welcome, ${res.organizer?.name || 'Marshall'}! Organizer mode enabled.`);
@@ -414,8 +419,11 @@ const exportBtn = $('#export');
 if (exportBtn) exportBtn.onclick = exportPDF;
 
 bindClose();
-if (window.location.pathname.replace(/\/$/, '') === '/organizer' && !API.isOrganizer()) {
-  $('#auth-dialog')?.showModal();
+if (window.location.pathname.replace(/\/$/, '') === '/organizer') {
+  window.location.replace('/login');
+} else if (window.location.pathname.replace(/\/$/, '') === '/login') {
+  if (API.isOrganizer()) window.location.replace('/');
+  else $('#auth-dialog')?.showModal();
 }
 render();
 
