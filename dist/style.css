@@ -60,3 +60,5 @@ button:active{transform:scale(0.97)}
 
 /* Conflict Toast Alert */
 #toast.conflict{background:#e53e3e;color:#fff;border-left:4px solid #fff;box-shadow:0 8px 30px #000c;font-weight:600}
+
+#auth-error{color:#ffb4b4;background:#542323;border:1px solid #c75b5b;border-radius:4px;padding:10px 12px;margin:12px 0}

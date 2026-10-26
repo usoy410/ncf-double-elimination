@@ -373,10 +373,21 @@ if (resetBtn) {
 }
 
 // Organizer Login Form Submission
+const authError = $('#auth-error');
+function clearLoginError() {
+  if (authError) {
+    authError.textContent = '';
+    authError.hidden = true;
+  }
+  $('#organizer-passcode')?.removeAttribute('aria-invalid');
+}
+const passcodeInput = $('#organizer-passcode');
+if (passcodeInput) passcodeInput.oninput = clearLoginError;
 const authForm = $('#auth-form');
 if (authForm) {
   authForm.onsubmit = async e => {
     e.preventDefault();
+    clearLoginError();
     const passcode = $('#organizer-passcode')?.value;
     const res = await API.login(passcode);
 
@@ -393,7 +404,11 @@ if (authForm) {
         showMatch(selected);
       }
     } else {
-      notify(res?.error || 'Invalid tournament passcode.');
+      if (authError) {
+        authError.textContent = res?.error || 'Invalid tournament passcode.';
+        authError.hidden = false;
+      }
+      $('#organizer-passcode')?.setAttribute('aria-invalid', 'true');
     }
   };
 }
