@@ -1,6 +1,6 @@
 # NCF Intramurals 2026 — Call of Legends
 
-A static tournament website for separate eight-team MLBB and CODM Search and Destroy brackets, using single elimination with full placement matches.
+A live tournament web application for separate eight-team MLBB and CODM Search and Destroy brackets, using single elimination with full placement matches. Built with real-time optimistic concurrency control, automatic 5-second match synchronization, and role-based organizer access.
 
 ## Tournament format
 
@@ -18,39 +18,71 @@ Each title has exactly 12 series:
 
 Quarterfinal losers compete only for 5th–8th place. There is no return to the championship and no reset final. Each team plays three series, and results determine all eight placements. CODM series wins represent complete Search and Destroy maps, not individual rounds within a map.
 
+## Live Synchronization & Multi-Device Concurrency
+
+- **5-Second Live Sync Heartbeat**: Spectator devices poll `/api/brackets` every 5 seconds, displaying live score updates, match completion progress, and placement standings.
+- **Optimistic Concurrency Control (OCC)**: Conflicting edits from two devices (e.g., tournament marshals simultaneously editing on different phones/tablets) are **strictly rejected with HTTP 409 Conflict** rather than silently overwriting each other. The rejected device alerts the organizer and automatically refreshes with the latest server state.
+- **Role-Based Access Control**:
+  - **Spectators**: Public read access to view brackets, matches, and PDF exports. Match dialogs open in view-only mode.
+  - **Approved Organizers**: Can log in using the venue passcode (`NCF2026`) or email credentials to record game outcomes, edit team names, or reset brackets.
+- **Audit Logging**: Every score change is recorded in an audit trail with timestamps, organizer metadata, match index, and version numbers.
+
 ## Features
 
 - Automatic winner and loser routing with expandable series.
 - First to two wins in BO3; first to three in the BO5 championship.
-- Editable team names and separate browser-local progress for each title.
-- Corrections clear affected downstream results.
+- Editable team names and synchronized cloud database via MongoDB Atlas.
+- Corrections clear affected downstream results deterministically.
 - Responsive bracket connectors: solid for winners, dashed for losers.
+- Live sync status indicator (`● LIVE · 5s`).
 - PDF export through the browser print dialog, including both brackets, final placements, and individual game/map results.
 
-## Run
+## Quick Start
 
-Open `dist/index.html`, or serve the site locally:
+### 1. Configure Environment
 
-```sh
-python3 -m http.server 8080 --directory dist
+Ensure `.env` contains your database configuration:
+
+```ini
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority
+ORGANIZER_PASSCODE=NCF2026
+PORT=8080
 ```
 
-Visit http://localhost:8080. No build or package installation is required.
-
-## Test
+### 2. Install Dependencies & Run
 
 ```sh
-node tests/engine.cjs
+npm install
+npm start
 ```
 
-Requires Node.js. Tests cover all 4,096 series outcome paths for both titles, placements, routing, BO3/BO5 clinching, corrections and migration. Browser visual testing is limited by the execution sandbox.
+Visit [http://localhost:8080](http://localhost:8080).
 
-## Existing progress
+## Testing
 
-The new format uses a separate localStorage key. Team names, quarterfinals, and championship semifinals are copied from the previous format if available. Incompatible later results start blank. The old saved data remains untouched, including the former BO3 upper final, which is not converted into a BO5 championship result.
+Run the comprehensive test suite:
 
-## Deploy
+```sh
+npm test
+```
 
-Deploy `dist/` to any static website host. Progress stays in each browser's localStorage and is not synchronized across visitors or devices. The repository name retains its original name; the application now uses the 12-series placement format.
+This executes:
+1. `tests/engine.cjs`: Validates all 4,096 series outcome paths, clinching, routing, and placements.
+2. `tests/render.cjs`: Verifies DOM rendering, match dialogs, and PDF generation without a browser.
+3. `tests/concurrency.cjs`: Simulates concurrent devices modifying the same match and asserts that race-condition edits are rejected via OCC.
 
-The supplied poster is included as artwork. Google Fonts load when available, with system font fallbacks. The uploaded guidelines PDF has not been edited.
+## Live Web Deployment
+
+### Deploying to Render.com (Recommended)
+
+1. Push your repository to GitHub.
+2. In [Render Dashboard](https://dashboard.render.com), click **New +** -> **Web Service**.
+3. Connect your repository `ncf-double-elimination`.
+4. Configure:
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+5. In **Environment Variables**, add:
+   - `MONGODB_URI`: Your MongoDB Atlas connection string.
+   - `ORGANIZER_PASSCODE`: e.g., `NCF2026`.
+6. Click **Deploy**. Your site will be live with free automatic SSL/HTTPS!

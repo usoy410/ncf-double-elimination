@@ -1,0 +1,29 @@
+{
+  "name": "ncf-double-elimination",
+  "version": "1.0.0",
+  "description": "A static tournament website for separate eight-team MLBB and CODM Search and Destroy brackets, using single elimination with full placement matches.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/engine.cjs && node tests/render.cjs && node tests/concurrency.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usoy410/ncf-double-elimination.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/usoy410/ncf-double-elimination/issues"
+  },
+  "homepage": "https://github.com/usoy410/ncf-double-elimination#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "mongodb": "^7.7.0"
+  }
+}

@@ -26,3 +26,37 @@ dialog:has(.rounds[style*="5"]){max-width:850px}
 .bracket-group.third-place .matches{height:155px;justify-content:center}
 .bracket-group.placement .matches{height:290px}
 .champion-box h3{overflow-wrap:anywhere}
+
+/* Live Sync Indicator & Pulse Animation */
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:1.5px;padding:6px 10px;border:1px solid #28303c;background:#10161f;color:var(--muted);border-radius:4px;user-select:none}
+.sync-badge.live{border-color:#2a4435;color:#85d6a2}
+.sync-badge.offline{border-color:#5c352a;color:#d68a85}
+.pulse-dot{color:#48bb78;font-size:10px;animation:syncPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite}
+.sync-badge.offline .pulse-dot{color:#e53e3e;animation:none}
+@keyframes syncPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
+
+/* Organizer Authentication Bar */
+.auth-bar{display:flex;align-items:center;gap:10px}
+.auth-btn{padding:7px 13px;font-size:10px;letter-spacing:1px;font-weight:600;border:1px solid var(--line);background:#131a24;color:var(--text);border-radius:4px;transition:all .2s ease-out}
+.auth-btn:hover{border-color:var(--gold);color:var(--gold);background:#1a2330}
+.auth-btn:active{transform:scale(0.97)}
+.auth-badge{font-size:9px;letter-spacing:1px;padding:6px 10px;background:#201a11;border:1px solid #5a4622;color:var(--gold);border-radius:4px;display:flex;align-items:center;gap:8px}
+.logout-btn{background:transparent;border:0;padding:0;color:var(--muted);cursor:pointer;font-size:9px;text-decoration:underline}
+.logout-btn:hover{color:#e53e3e}
+
+/* Dialog Form Enhancements */
+.dialog-field{margin:16px 0}
+.dialog-field label{display:block;font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+.dialog-buttons{display:flex;gap:12px;margin-top:24px}
+.dialog-buttons button{flex:1}
+.secondary{background:#171f2c;border:1px solid var(--line);color:var(--text)}
+.secondary:hover{border-color:var(--muted);background:#1d2737}
+button:active{transform:scale(0.97)}
+
+/* Spectator vs Organizer Dialog Banner */
+.viewer-notice{margin:12px 0 16px;padding:9px 14px;background:#141c27;border:1px solid #233041;border-radius:4px;font-size:11px;color:#9eb0c6;display:flex;align-items:center;gap:8px}
+.viewer-notice b{color:var(--gold)}
+.organizer-notice{margin:12px 0 16px;padding:9px 14px;background:#241d13;border:1px solid #574421;border-radius:4px;font-size:11px;color:#e8cb8c}
+
+/* Conflict Toast Alert */
+#toast.conflict{background:#e53e3e;color:#fff;border-left:4px solid #fff;box-shadow:0 8px 30px #000c;font-weight:600}

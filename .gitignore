@@ -4,3 +4,7 @@
 preview.png
 mobile.png
 sample-export.pdf
+.env
+.env.*
+*.env
+node_modules/
