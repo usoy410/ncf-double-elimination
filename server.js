@@ -28,6 +28,25 @@ app.use(express.json());
 // Serve static frontend assets from dist/
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Livestream links are public to read and organizer-only to publish.
+const { getStreams, setStream } = require('./lib/streams');
+app.get('/api/streams', async (req, res) => {
+  try { res.json({ success: true, streams: await getStreams() }); }
+  catch { res.status(500).json({ success: false, error: 'Unable to load livestreams.' }); }
+});
+app.post('/api/streams/:title', requireOrganizer, async (req, res) => {
+  try {
+    const title = req.params.title.toUpperCase();
+    const { normalizeUrl } = require('./lib/streams');
+    if (!['MLBB', 'CODM'].includes(title)) return res.status(400).json({ success: false, error: 'Choose MLBB or CODM.' });
+    let url;
+    try { url = normalizeUrl(req.body.url); }
+    catch { return res.status(400).json({ success: false, error: 'Enter a valid HTTP or HTTPS livestream link.' }); }
+    await setStream(title, url, req.organizer?.name || 'Organizer');
+    res.json({ success: true, title, url });
+  } catch { res.status(500).json({ success: false, error: 'Unable to save livestream. Please try again.' }); }
+});
+
 // -----------------------------------------------------------------------------
 // PUBLIC SPECATOR ENDPOINTS (Polled every 5 seconds)
 // -----------------------------------------------------------------------------

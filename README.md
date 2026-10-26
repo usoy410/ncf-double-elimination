@@ -86,3 +86,13 @@ This executes:
    - `MONGODB_URI`: Your MongoDB Atlas connection string.
    - `ORGANIZER_PASSCODE`: e.g., `NCF2026`.
 6. Click **Deploy**. Your site will be live with free automatic SSL/HTTPS!
+
+## Livestreams
+
+Spectators can choose **Watch MLBB** or **Watch CODM** in the livestream section above the brackets. Links open in a new tab. Games without a published link show “Link not posted yet”; posting a link does not claim that a broadcast is currently live.
+
+After logging in, organizers can select a game, paste an HTTP(S) broadcast link, and choose **Save livestream**. Saving an empty link removes it. Links are stored in MongoDB's `streams` collection independently of match scores and refresh for viewers every five seconds. Only organizers can publish or remove links; URLs with credentials or non-web protocols are rejected. Simultaneous saves for the same game use the last saved link.
+
+Final placements sit outside the horizontally scrolling bracket and use four columns on desktop, two on tablets, and one on phones. Team names wrap within each placement card.
+
+`node tests/streams.cjs` exercises the livestream HTTP routes with an isolated database adapter; it does not replace the MongoDB integration suite.

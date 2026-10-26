@@ -1,7 +1,7 @@
 const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const elements=new Map(),stored=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',style:{},removeAttribute(){},setAttribute(){},querySelectorAll(){return []},showModal(){this.open=true},close(){this.open=false}});return elements.get(id);}
-const ctx={Bracket:require('../dist/engine.js'),document:{querySelector:element,querySelectorAll:()=>[],title:''},localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},window:{location:{pathname:"/"},print(){}},drawBracketConnectors(){},setTimeout(){},clearTimeout(){},confirm:()=>true};
+const ctx={URL,Bracket:require('../dist/engine.js'),document:{querySelector:element,querySelectorAll:()=>[],title:''},localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},window:{location:{pathname:"/"},print(){}},drawBracketConnectors(){},setTimeout(){},clearTimeout(){},confirm:()=>true};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8'),ctx);
 assert.equal((element('#board').innerHTML.match(/data-match=/g)||[]).length,12);
 assert(element('#board').innerHTML.includes('WHO WILL RISE?'));
@@ -90,3 +90,12 @@ for (const [pathname,authenticated,destination,opensLogin] of [
   assert.equal(Boolean(lookup('#auth-dialog').open),opensLogin);
 }
 console.log('PASS: direct /login access, existing sessions, and legacy organizer redirect.');
+
+vm.runInContext("streamLinks={MLBB:'https://example.com/watch?x=1&y=2',CODM:'javascript:alert(1)'};renderStreams()",ctx);
+assert(element('#stream-links').innerHTML.includes('Watch MLBB'));
+assert(element('#stream-links').innerHTML.includes('noopener noreferrer'));
+assert(!element('#stream-links').innerHTML.includes('javascript:'));
+assert(!element('#stream-links').innerHTML.includes('Watch CODM'));
+assert(element('#placements').innerHTML.includes('final placements'));
+assert(!element('#board').innerHTML.includes('class="standings"'));
+console.log('PASS: safe watch links and placements outside bracket scrolling.');
