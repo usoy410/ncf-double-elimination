@@ -1,0 +1,6 @@
+.openai/
+*.zip
+*.tar.gz
+preview.png
+mobile.png
+sample-export.pdf
