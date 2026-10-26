@@ -19,3 +19,10 @@ dialog:has(.rounds[style*="5"]){max-width:850px}
 .standings{margin:30px 0}.standings ol{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);padding:0;gap:12px}.standings li{border:1px solid var(--line);padding:15px;display:flex;gap:15px}.standings li span{color:var(--gold)}
 @media(max-width:750px){.rounds{grid-template-columns:repeat(2,minmax(0,1fr))}.standings ol{grid-template-columns:repeat(2,1fr)}}
 @media print{#print-view .print-bracket{grid-template-columns:repeat(3,1fr)}#print-view .print-column{height:380px}#print-view .print-match{padding:7px}}
+
+/* Keep the championship path separate from placement playoffs. */
+.bracket-group.championship .bracket-grid{grid-template-columns:repeat(3,minmax(210px,1fr)) minmax(180px,.8fr)}
+.bracket-group.championship .matches{height:570px}
+.bracket-group.third-place .matches{height:155px;justify-content:center}
+.bracket-group.placement .matches{height:290px}
+.champion-box h3{overflow-wrap:anywhere}

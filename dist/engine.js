@@ -8,8 +8,9 @@ const specs=[
  ['Third-place match',l(4),l(5)],['Fifth-place match',w(6),w(7)],['Seventh-place match',l(6),l(7)],['Championship',w(4),w(5)]
 ].map(([title,...sources],i)=>({title,sources,bestOf:i===11?5:3,winTarget:i===11?3:2}));
 const groups=[
- {title:'CHAMPIONSHIP BRACKET',note:'Quarterfinal winners compete for 1st–4th place',columns:[['QUARTERFINALS',[0,1,2,3]],['CHAMPIONSHIP SEMIFINALS',[4,5]],['1ST & 3RD PLACE',[11,8]]]},
- {title:'PLACEMENT BRACKET · 5TH–8TH',note:'Quarterfinal losers compete only for 5th–8th place',columns:[['PLACEMENT SEMIFINALS',[6,7]],['5TH & 7TH PLACE',[9,10]]]}
+ {kind:'championship',title:'CHAMPIONSHIP BRACKET',note:'Quarterfinal winners compete for the crown',columns:[['QUARTERFINALS',[0,1,2,3]],['CHAMPIONSHIP SEMIFINALS',[4,5]],['CHAMPIONSHIP · BO5',[11]]]},
+ {kind:'third-place',title:'THIRD-PLACE PLAYOFF',note:'Championship semifinal losers compete for 3rd and 4th place',columns:[['3RD & 4TH PLACE',[8]]]},
+ {kind:'placement',title:'PLACEMENT BRACKET · 5TH–8TH',note:'Quarterfinal losers compete only for 5th–8th place',columns:[['PLACEMENT SEMIFINALS',[6,7]],['5TH & 7TH PLACE',[9,10]]]}
 ];
 const blankGames=()=>specs.map(s=>Array(s.bestOf).fill(null));
 const fresh=()=>Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,{names:[...v],games:blankGames()}]));

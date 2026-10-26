@@ -31,6 +31,8 @@
         if (source.match !== undefined && cards.has(source.match)) connect(source.match, id, source.result === 'loser');
       }
     }
+    const champion = container.querySelector('[data-champion]');
+    if (champion) { cards.set(-1, champion); connect(11, -1); }
     container.prepend(svg);
   }
   window.drawBracketConnectors = () => document.querySelectorAll('.bracket-grid, .print-bracket').forEach(draw);
