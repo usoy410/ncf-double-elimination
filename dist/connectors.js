@@ -27,10 +27,8 @@
       svg.append(path);
     }
     for (const [id] of cards) {
-      // The reset repeats the finalists, but is triggered by the first final.
-      if (id === 14) { connect(13, 14, true); continue; }
       for (const source of Bracket.specs[id].sources) {
-        if (source.match !== undefined && cards.has(source.match)) connect(source.match, id);
+        if (source.match !== undefined && cards.has(source.match)) connect(source.match, id, source.result === 'loser');
       }
     }
     container.prepend(svg);

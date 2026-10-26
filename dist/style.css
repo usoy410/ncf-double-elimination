@@ -10,3 +10,12 @@
 .bracket-connectors path{fill:none;stroke:#536174;stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .team-row>span:nth-child(2){min-width:0;overflow-wrap:anywhere}
 @media print{.bracket-connectors path{stroke:#68717c;stroke-width:1}.print-match{background:white}}
+.match-title{font-size:10px;font-weight:600;padding:9px 12px 0;color:var(--text)}
+.bracket-grid{grid-template-columns:repeat(3,minmax(240px,1fr))}
+.bracket-group:nth-child(1) .matches{height:570px}
+.bracket-group:nth-child(2) .matches{height:290px}
+.rounds{grid-template-columns:repeat(var(--game-count,3),minmax(0,1fr))}
+dialog:has(.rounds[style*="5"]){max-width:850px}
+.standings{margin:30px 0}.standings ol{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);padding:0;gap:12px}.standings li{border:1px solid var(--line);padding:15px;display:flex;gap:15px}.standings li span{color:var(--gold)}
+@media(max-width:750px){.rounds{grid-template-columns:repeat(2,minmax(0,1fr))}.standings ol{grid-template-columns:repeat(2,1fr)}}
+@media print{#print-view .print-bracket{grid-template-columns:repeat(3,1fr)}#print-view .print-column{height:380px}#print-view .print-match{padding:7px}}
