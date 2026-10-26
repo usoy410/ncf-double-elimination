@@ -89,19 +89,25 @@ function resultText(i, ms, t) {
  * Updates header badges to reflect live connection and organizer authentication state.
  */
 function updateAuthUI() {
+  const isOrg = API.isOrganizer();
+  for (const selector of ['#edit', '#reset']) {
+    const button = $(selector);
+    if (button) button.hidden = !isOrg;
+  }
+  if (!isOrg) $('#team-dialog')?.close();
   const authBar = $('#auth-bar');
   if (!authBar) return;
-  const isOrg = API.isOrganizer();
   const profile = API.getProfile();
 
+  authBar.hidden = false;
   if (isOrg) {
     authBar.innerHTML = `<span class="auth-badge">★ Organizer: <b>${esc(profile?.name || 'Marshall')}</b> <button type="button" class="logout-btn" id="logout-btn">Log out</button></span>`;
     const logoutBtn = $('#logout-btn');
-    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); };
+    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); if (selected !== null && $('#match-dialog')?.open) showMatch(selected); };
   } else {
-    authBar.innerHTML = `<button id="auth-btn" class="auth-btn" type="button">Organizer Login</button>`;
+    authBar.innerHTML = '<button id="auth-btn" class="auth-btn" type="button">Login</button>';
     const authBtn = $('#auth-btn');
-    if (authBtn) authBtn.onclick = () => { $('#auth-dialog')?.showModal(); };
+    if (authBtn) authBtn.onclick = () => window.location.assign('/login');
   }
 }
 
@@ -113,9 +119,8 @@ async function chooseGame(i, g, side) {
   const t = data[active];
 
   // Viewer check: Only approved tournament organizers can record results
-  if (!API.isOrganizer() && typeof fetch !== 'undefined') {
+  if (!API.isOrganizer()) {
     notify('👁️ Spectator mode. Log in as an approved organizer to record scores.');
-    $('#auth-dialog')?.showModal();
     return;
   }
 
@@ -292,9 +297,8 @@ document.querySelectorAll('[data-tab]').forEach(b => {
 const editBtn = $('#edit');
 if (editBtn) {
   editBtn.onclick = () => {
-    if (!API.isOrganizer() && typeof fetch !== 'undefined') {
+    if (!API.isOrganizer()) {
       notify('Only approved organizers can edit team names.');
-      $('#auth-dialog')?.showModal();
       return;
     }
     const teamFields = $('#team-fields');
@@ -310,6 +314,7 @@ const teamForm = $('#team-form');
 if (teamForm) {
   teamForm.onsubmit = async e => {
     e.preventDefault();
+    if (!API.isOrganizer()) return notify('Only approved organizers can edit team names.');
     const names = Array.from($('#team-fields').querySelectorAll('input')).map(x => x.value.trim());
     if (names.some(n => !n)) return notify('Every team needs a name.');
     if (new Set(names.map(n => n.toLowerCase())).size < 8) return notify('Please give each team a unique name.');
@@ -342,9 +347,8 @@ if (teamForm) {
 const resetBtn = $('#reset');
 if (resetBtn) {
   resetBtn.onclick = async () => {
-    if (!API.isOrganizer() && typeof fetch !== 'undefined') {
+    if (!API.isOrganizer()) {
       notify('Only approved organizers can reset brackets.');
-      $('#auth-dialog')?.showModal();
       return;
     }
     if (confirm(`Reset all ${active} results? Team names will stay. This cannot be undone.`)) {
@@ -369,16 +373,30 @@ if (resetBtn) {
 }
 
 // Organizer Login Form Submission
+const authError = $('#auth-error');
+function clearLoginError() {
+  if (authError) {
+    authError.textContent = '';
+    authError.hidden = true;
+  }
+  $('#organizer-passcode')?.removeAttribute('aria-invalid');
+}
+const passcodeInput = $('#organizer-passcode');
+if (passcodeInput) passcodeInput.oninput = clearLoginError;
 const authForm = $('#auth-form');
 if (authForm) {
   authForm.onsubmit = async e => {
     e.preventDefault();
+    clearLoginError();
     const passcode = $('#organizer-passcode')?.value;
-    const email = $('#organizer-email')?.value;
-    const res = await API.login(passcode, email);
+    const res = await API.login(passcode);
 
     if (res && res.success) {
       $('#auth-dialog')?.close();
+      if (window.location.pathname.replace(/\/$/, '') === '/login') {
+        window.location.replace('/');
+        return;
+      }
       updateAuthUI();
       render();
       notify(`Welcome, ${res.organizer?.name || 'Marshall'}! Organizer mode enabled.`);
@@ -386,7 +404,11 @@ if (authForm) {
         showMatch(selected);
       }
     } else {
-      notify(res?.error || 'Invalid tournament passcode.');
+      if (authError) {
+        authError.textContent = res?.error || 'Invalid tournament passcode.';
+        authError.hidden = false;
+      }
+      $('#organizer-passcode')?.setAttribute('aria-invalid', 'true');
     }
   };
 }
@@ -412,6 +434,12 @@ const exportBtn = $('#export');
 if (exportBtn) exportBtn.onclick = exportPDF;
 
 bindClose();
+if (window.location.pathname.replace(/\/$/, '') === '/organizer') {
+  window.location.replace('/login');
+} else if (window.location.pathname.replace(/\/$/, '') === '/login') {
+  if (API.isOrganizer()) window.location.replace('/');
+  else $('#auth-dialog')?.showModal();
+}
 render();
 
 // Perform initial sync immediately upon load
