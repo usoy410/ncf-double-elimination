@@ -94,14 +94,14 @@ function updateAuthUI() {
   const isOrg = API.isOrganizer();
   const profile = API.getProfile();
 
-  if (isOrg) {
+  const onOrganizerRoute = window.location.pathname.replace(/\/$/, '') === '/organizer';
+  authBar.hidden = !onOrganizerRoute;
+  if (isOrg && onOrganizerRoute) {
     authBar.innerHTML = `<span class="auth-badge">★ Organizer: <b>${esc(profile?.name || 'Marshall')}</b> <button type="button" class="logout-btn" id="logout-btn">Log out</button></span>`;
     const logoutBtn = $('#logout-btn');
-    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); };
+    if (logoutBtn) logoutBtn.onclick = () => { API.logout(); updateAuthUI(); render(); notify('Logged out of organizer mode.'); $('#auth-dialog')?.showModal(); };
   } else {
-    authBar.innerHTML = `<button id="auth-btn" class="auth-btn" type="button">Organizer Login</button>`;
-    const authBtn = $('#auth-btn');
-    if (authBtn) authBtn.onclick = () => { $('#auth-dialog')?.showModal(); };
+    authBar.innerHTML = '';
   }
 }
 
@@ -115,7 +115,6 @@ async function chooseGame(i, g, side) {
   // Viewer check: Only approved tournament organizers can record results
   if (!API.isOrganizer() && typeof fetch !== 'undefined') {
     notify('👁️ Spectator mode. Log in as an approved organizer to record scores.');
-    $('#auth-dialog')?.showModal();
     return;
   }
 
@@ -294,7 +293,6 @@ if (editBtn) {
   editBtn.onclick = () => {
     if (!API.isOrganizer() && typeof fetch !== 'undefined') {
       notify('Only approved organizers can edit team names.');
-      $('#auth-dialog')?.showModal();
       return;
     }
     const teamFields = $('#team-fields');
@@ -344,7 +342,6 @@ if (resetBtn) {
   resetBtn.onclick = async () => {
     if (!API.isOrganizer() && typeof fetch !== 'undefined') {
       notify('Only approved organizers can reset brackets.');
-      $('#auth-dialog')?.showModal();
       return;
     }
     if (confirm(`Reset all ${active} results? Team names will stay. This cannot be undone.`)) {
@@ -412,6 +409,9 @@ const exportBtn = $('#export');
 if (exportBtn) exportBtn.onclick = exportPDF;
 
 bindClose();
+if (window.location.pathname.replace(/\/$/, '') === '/organizer' && !API.isOrganizer()) {
+  $('#auth-dialog')?.showModal();
+}
 render();
 
 // Perform initial sync immediately upon load
