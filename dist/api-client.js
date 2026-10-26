@@ -89,18 +89,17 @@
   }
 
   /**
-   * Authenticates organizer with tournament passcode or email.
+   * Authenticates organizer with tournament passcode.
    * @param {string} passcode
-   * @param {string} [email]
    * @returns {Promise<{ success: boolean, organizer?: object, error?: string }>}
    */
-  async function login(passcode, email) {
+  async function login(passcode) {
     if (typeof fetch === 'undefined') return { success: false, error: 'Offline environment' };
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode, email }),
+        body: JSON.stringify({ passcode }),
       });
       const data = await res.json();
       if (res.ok && data.success) {

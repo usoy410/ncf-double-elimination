@@ -1,7 +1,7 @@
 const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const elements=new Map(),stored=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',style:{},setAttribute(){},querySelectorAll(){return []},showModal(){this.open=true},close(){this.open=false}});return elements.get(id);}
-const ctx={Bracket:require('../dist/engine.js'),document:{querySelector:element,querySelectorAll:()=>[],title:''},localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},window:{print(){}},drawBracketConnectors(){},setTimeout(){},clearTimeout(){},confirm:()=>true};
+const ctx={Bracket:require('../dist/engine.js'),document:{querySelector:element,querySelectorAll:()=>[],title:''},localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},window:{location:{pathname:"/"},print(){}},drawBracketConnectors(){},setTimeout(){},clearTimeout(){},confirm:()=>true};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8'),ctx);
 assert.equal((element('#board').innerHTML.match(/data-match=/g)||[]).length,12);
 assert(element('#board').innerHTML.includes('WHO WILL RISE?'));
@@ -18,3 +18,34 @@ assert(element('#board').innerHTML.includes('NCF 2026 CHAMPION'));
 const pdf=element('#print-view').innerHTML;assert.equal((pdf.match(/data-match=/g)||[]).length,12);assert(pdf.includes('Game 5'));assert(pdf.includes('FINAL PLACEMENTS'));assert(pdf.includes('M12 · BO5'));assert(!pdf.includes('Reset'));
 vm.runInContext("active='CODM';showMatch(11);exportPDF()",ctx);assert(element('#match-content').innerHTML.includes('MAP 05'));assert(element('#print-view').innerHTML.includes('Map 5'));
 console.log('PASS: 12 match cards; BO3/BO5 expanded panels; PDF placements and fifth-game columns; CODM map labels. DOM rendering checked without a browser.');
+
+// Spectators cannot reveal or invoke organizer actions, even without fetch.
+assert.equal(element('#edit').hidden,true);
+assert.equal(element('#reset').hidden,true);
+element('#team-dialog').open=false;
+element('#edit').onclick();
+assert.equal(element('#team-dialog').open,false);
+const before=vm.runInContext('JSON.stringify(data)',ctx);
+(async()=>{
+  await element('#reset').onclick();
+  await element('#team-form').onsubmit({preventDefault(){}});
+  await vm.runInContext('chooseGame(0,0,0)',ctx);
+  assert.equal(vm.runInContext('JSON.stringify(data)',ctx),before);
+  vm.runInContext('API.isOrganizer = () => true; updateAuthUI()',ctx);
+  assert.equal(element('#edit').hidden,false);
+  assert.equal(element('#reset').hidden,false);
+  element('#edit').onclick();
+  assert.equal(element('#team-dialog').open,true);
+  vm.runInContext('API.isOrganizer = () => false; updateAuthUI()',ctx);
+  assert.equal(element('#edit').hidden,true);
+  assert.equal(element('#reset').hidden,true);
+  assert.equal(element('#team-dialog').open,false);
+  let loginArgs;
+  ctx.captureLogin=(...args)=>{loginArgs=args;return {success:false}};
+  vm.runInContext('API.login = captureLogin',ctx);
+  element('#organizer-passcode').value='test-passcode';
+  await element('#auth-form').onsubmit({preventDefault(){}});
+  assert.deepEqual(loginArgs,['test-passcode']);
+  assert(!fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8').includes('organizer-email'));
+  console.log('PASS: spectator actions blocked; organizer controls shown; logout hides controls and closes editor; passcode-only login.');
+})().catch(err=>{console.error(err);process.exitCode=1});
