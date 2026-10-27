@@ -95,6 +95,8 @@ function updateAuthUI() {
     if (button) button.hidden = !isOrg;
   }
   if (!isOrg) $('#team-dialog')?.close();
+  const streamEditor = $('#stream-editor');
+  if (streamEditor) streamEditor.hidden = !isOrg;
   const authBar = $('#auth-bar');
   if (!authBar) return;
   const profile = API.getProfile();
@@ -191,7 +193,7 @@ function render() {
 
   const boardEl = $('#board');
   if (boardEl) {
-    boardEl.innerHTML = groups.map(group => `<section class="bracket-group ${group.kind}"><div class="group-title">${group.title}<span>${group.note}</span></div><div class="bracket-grid">${group.columns.map(([name, ids]) => `<div class="column"><div class="column-heading">${name}</div><div class="matches">${ids.map(i => matchHTML(i, ms[i], t)).join('')}</div></div>`).join('')}${group.kind === 'championship' ? `<div class="column"><div class="column-heading">CHAMPION</div><div class="matches"><div class="champion-box" data-champion><div class="trophy" aria-hidden="true">♜</div><small>${champ === null ? 'THE CROWN AWAITS' : 'NCF 2026 CHAMPION'}</small><h3>${champ === null ? 'WHO WILL RISE?' : esc(t.names[champ])}</h3><p>${champ === null ? 'One final. One champion.' : `${active} · Champions of the campus`}</p></div></div></div>` : ''}</div></section>`).join('') + `<section class="standings"><h2>Final placements</h2><ol>${placements(ms).map((seed, i) => `<li><span>${i + 1}</span><strong>${seed === null ? 'To be decided' : esc(t.names[seed])}</strong></li>`).join('')}</ol></section>`;
+    boardEl.innerHTML = groups.map(group => `<section class="bracket-group ${group.kind}"><div class="group-title">${group.title}<span>${group.note}</span></div><div class="bracket-grid">${group.columns.map(([name, ids]) => `<div class="column"><div class="column-heading">${name}</div><div class="matches">${ids.map(i => matchHTML(i, ms[i], t)).join('')}</div></div>`).join('')}${group.kind === 'championship' ? `<div class="column"><div class="column-heading">CHAMPION</div><div class="matches"><div class="champion-box" data-champion><div class="trophy" aria-hidden="true">♜</div><small>${champ === null ? 'THE CROWN AWAITS' : 'NCF 2026 CHAMPION'}</small><h3>${champ === null ? 'WHO WILL RISE?' : esc(t.names[champ])}</h3><p>${champ === null ? 'One final. One champion.' : `${active} · Champions of the campus`}</p></div></div></div>` : ''}</div></section>`).join('');
   }
 
   document.querySelectorAll('[data-match]').forEach(b => {
@@ -199,6 +201,8 @@ function render() {
   });
 
   if (typeof drawBracketConnectors === 'function') drawBracketConnectors();
+  const standings = $('#placements');
+  if (standings) standings.innerHTML = `<h2>${active} final placements</h2><p>All eight teams, from champion to eighth place.</p><ol>${placements(ms).map((seed, i) => `<li class="${i < 3 ? 'podium' : ''}"><span>${String(i + 1).padStart(2, '0')}</span><div><small>${['Champion', 'Runner-up', 'Third place'][i] || `Place ${i + 1}`}</small><strong>${seed === null ? 'To be decided' : esc(t.names[seed])}</strong></div></li>`).join('')}</ol>`;
   updateAuthUI();
 }
 
@@ -448,3 +452,50 @@ if (typeof fetch !== 'undefined') {
 }
 
 if (migrated) notify('New format: team names, quarterfinals and championship semifinals retained. Other series start fresh.');
+
+// Stream state is shared separately from bracket scores and their OCC versions.
+let streamLinks = { MLBB: '', CODM: '' };
+let streamsLoaded = false;
+function renderStreams() {
+  const links = $('#stream-links');
+  if (!links) return;
+  links.innerHTML = ['MLBB', 'CODM'].map(title => {
+    let url = '';
+    try { const parsed = new URL(streamLinks[title]); if (['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password) url = parsed.href; } catch {}
+    return `<div class="stream-card"><div><strong>${title}</strong><span>${title === 'MLBB' ? 'Mobile Legends: Bang Bang' : 'Call of Duty: Mobile'}</span></div>${url ? `<a class="watch-stream" href="${esc(url)}" target="_blank" rel="noopener noreferrer">▶ Watch ${title}<span class="sr-only"> (opens in a new tab)</span></a>` : '<span class="stream-unavailable">Link not posted yet</span>'}</div>`;
+  }).join('');
+}
+async function loadStreams() {
+  if (typeof fetch === 'undefined') return;
+  try {
+    const res = await fetch('/api/streams', { cache: 'no-store' });
+    const result = await res.json();
+    if (!res.ok || !result.success) throw new Error();
+    streamLinks = result.streams;
+    if (!streamsLoaded && $('#stream-url') && !$('#stream-url').value) {
+      $('#stream-url').value = streamLinks[$('#stream-title').value] || '';
+    }
+    streamsLoaded = true;
+    renderStreams();
+  } catch { const message = $('#stream-message'); if (message) message.textContent = 'Unable to refresh livestream links. Please try again.'; }
+}
+const streamTitle = $('#stream-title');
+if (streamTitle) streamTitle.onchange = () => { $('#stream-url').value = streamLinks[streamTitle.value] || ''; };
+const streamForm = $('#stream-form');
+if (streamForm) streamForm.onsubmit = async event => {
+  event.preventDefault();
+  if (!API.isOrganizer()) return;
+  const message = $('#stream-message');
+  message.textContent = 'Saving…';
+  try {
+    const res = await fetch(`/api/streams/${streamTitle.value}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API.getToken()}` }, body: JSON.stringify({ url: $('#stream-url').value }) });
+    const result = await res.json();
+    if (!res.ok || !result.success) throw new Error(result.error || 'Unable to save livestream.');
+    streamLinks[result.title] = result.url;
+    renderStreams();
+    message.textContent = result.url ? 'Livestream published.' : 'Livestream removed.';
+  } catch (error) { message.textContent = error.message || 'Unable to save livestream.'; }
+};
+renderStreams();
+loadStreams();
+if (typeof fetch !== 'undefined') setInterval(loadStreams, 5000);
