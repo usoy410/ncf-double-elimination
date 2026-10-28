@@ -84,6 +84,7 @@ app.get('/api/brackets/:title', async (req, res) => {
         title: bracket.title,
         names: bracket.names,
         games: bracket.games,
+        defaultWins: bracket.defaultWins || Array(12).fill(null),
         version: bracket.version || 1,
         updatedAt: bracket.updatedAt,
       },
@@ -123,7 +124,7 @@ app.post('/api/auth/login', async (req, res) => {
  */
 app.post('/api/bracket/record', requireOrganizer, async (req, res) => {
   try {
-    const { title, expectedVersion, matchIndex, gameIndex, winnerSide } = req.body;
+    const { title, expectedVersion, matchIndex, gameIndex, winnerSide, defaultWin } = req.body;
     const editor = req.organizer?.name || 'Tournament Marshall';
 
     const result = await recordGameWithOCC({
@@ -132,6 +133,7 @@ app.post('/api/bracket/record', requireOrganizer, async (req, res) => {
       matchIndex: Number(matchIndex),
       gameIndex: Number(gameIndex),
       winnerSide: winnerSide === null ? null : Number(winnerSide),
+      defaultWin: defaultWin === true,
       editor,
     });
 

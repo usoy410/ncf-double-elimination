@@ -13,15 +13,24 @@ const groups=[
  {kind:'placement',title:'PLACEMENT BRACKET · 5TH–8TH',note:'Quarterfinal losers compete only for 5th–8th place',columns:[['PLACEMENT SEMIFINALS',[6,7]],['5TH & 7TH PLACE',[9,10]]]}
 ];
 const blankGames=()=>specs.map(s=>Array(s.bestOf).fill(null));
-const fresh=()=>Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,{names:[...v],games:blankGames()}]));
+const fresh=()=>Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,{names:[...v],games:blankGames(),defaultWins:Array(specs.length).fill(null)}]));
 const scores=g=>[g.filter(v=>v===0).length,g.filter(v=>v===1).length];
 function derive(t){const out=[];for(let i=0;i<specs.length;i++){const seeds=specs[i].sources.map(s=>s.seed??out[s.match][s.result]);const ready=seeds.every(s=>s!==null);const score=ready?scores(t.games[i]):[0,0];const side=score.findIndex(v=>v>=specs[i].winTarget);out.push({seeds,ready,score,winner:side<0?null:seeds[side],loser:side<0?null:seeds[1-side]});}return out;}
 const champion=ms=>ms[11].winner;
 function placements(ms){return [11,8,9,10].flatMap(i=>[ms[i].winner,ms[i].loser]);}
 function gameSkipped(games,g,target){return scores(games.slice(0,g)).some(n=>n>=target);}
-function record(t,i,g,side){if(!Number.isInteger(i)||!specs[i]||!Number.isInteger(g)||g<0||g>=specs[i].bestOf||![0,1].includes(side))return false;const before=derive(t),games=t.games[i];if(!before[i].ready||(g>0&&games[g-1]===null)||gameSkipped(games,g,specs[i].winTarget))return false;games[g]=games[g]===side?null:side;for(let j=g+1;j<games.length;j++)games[j]=null;for(let j=i+1;j<specs.length;j++){const now=derive(t);if(now[j].seeds.some((s,k)=>s!==before[j].seeds[k]))t.games[j]=Array(specs[j].bestOf).fill(null);}return true;}
+function record(t,i,g,side){if(!Number.isInteger(i)||!specs[i]||!Number.isInteger(g)||g<0||g>=specs[i].bestOf||![0,1].includes(side))return false;const before=derive(t),games=t.games[i];if(!before[i].ready||(g>0&&games[g-1]===null)||gameSkipped(games,g,specs[i].winTarget))return false;t.defaultWins ||= Array(specs.length).fill(null);t.defaultWins[i]=null;games[g]=games[g]===side?null:side;for(let j=g+1;j<games.length;j++)games[j]=null;for(let j=i+1;j<specs.length;j++){const now=derive(t);if(now[j].seeds.some((s,k)=>s!==before[j].seeds[k])){t.games[j]=Array(specs[j].bestOf).fill(null);t.defaultWins[j]=null;}}return true;}
+// Award a whole series while preserving the engine's winner/loser routing.
+function winByDefault(t,i,side){
+ if(!Number.isInteger(i)||!specs[i]||![0,1].includes(side)||!derive(t)[i].ready)return false;
+ // Clear the current series through record(), which also clears affected descendants.
+ if(t.games[i][0]!==null)record(t,i,0,t.games[i][0]);
+ for(let g=0;g<specs[i].winTarget;g++)if(!record(t,i,g,side))return false;
+ t.defaultWins[i]=side;
+ return true;
+}
 const sourceLabel=s=>s.seed!==undefined?`Seed ${s.seed+1}`:`${s.result==='winner'?'Winner':'Loser'} of M${s.match+1}`;
 function valid(v,lengths){return v&&Object.keys(defaults).every(k=>v[k]?.names?.length===8&&v[k].names.every(x=>typeof x==='string')&&v[k]?.games?.length===lengths.length&&v[k].games.every((g,i)=>Array.isArray(g)&&g.length===lengths[i]&&g.every(x=>x===null||x===0||x===1)));}
 function migrate(old){const next=fresh();for(const k of Object.keys(defaults)){next[k].names=[...old[k].names];for(let i=0;i<6;i++)next[k].games[i]=[...old[k].games[i]];}return next;}
-const api={defaults,specs,groups,blankGames,fresh,scores,derive,champion,placements,gameSkipped,record,sourceLabel,valid,migrate};if(typeof module!=='undefined')module.exports=api;else root.Bracket=api;
+const api={defaults,specs,groups,blankGames,fresh,scores,derive,champion,placements,gameSkipped,record,winByDefault,sourceLabel,valid,migrate};if(typeof module!=='undefined')module.exports=api;else root.Bracket=api;
 })(globalThis);

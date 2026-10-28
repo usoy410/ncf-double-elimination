@@ -66,6 +66,17 @@ const before=vm.runInContext('JSON.stringify(data)',ctx);
   assert.equal(ctx.window.location.pathname,'/');
   assert.equal(element('#auth-error').hidden,true);
   console.log('PASS: login errors appear inside the modal and clear on input or retry.');
+
+vm.runInContext("active='MLBB';Bracket.winByDefault(data.MLBB,0,0);render();showMatch(0)",ctx);
+assert(element('#board').innerHTML.includes('WIN BY DEFAULT'));
+assert(element('#board').innerHTML.includes('W · DEFAULT'));
+assert(element('#match-content').innerHTML.includes('WIN BY DEFAULT'));
+vm.runInContext('API.isOrganizer=()=>false;showMatch(0)',ctx);
+assert(!element('#match-content').innerHTML.includes('data-default-side='));
+vm.runInContext('API.isOrganizer=()=>true;showMatch(0)',ctx);
+assert(element('#match-content').innerHTML.includes('data-default-side='));
+console.log('PASS: default-win labels visible to spectators; award buttons restricted to organizers.');
+
   console.log('PASS: Login navigates to /login; successful login returns to /.');
   console.log('PASS: spectator actions blocked; organizer controls shown; logout hides controls and closes editor; passcode-only login.');
 })().catch(err=>{console.error(err);process.exitCode=1});
