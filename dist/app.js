@@ -117,8 +117,9 @@ function updateAuthUI() {
  * Handles recording a game winner with Optimistic Concurrency Control.
  * If another device updated the match, the edit is rejected and latest state is pulled.
  */
-async function chooseGame(i, g, side) {
-  const t = data[active];
+async function chooseGame(i, g, side, defaultWin = false) {
+  const title = active;
+  const t = data[title];
 
   // Viewer check: Only approved tournament organizers can record results
   if (!API.isOrganizer()) {
@@ -127,16 +128,18 @@ async function chooseGame(i, g, side) {
   }
 
   // Pre-validate move in memory
-  if (!record(t, i, g, side)) return;
+  const candidate = { names: [...t.names], games: t.games.map(games => [...games]), defaultWins: [...(t.defaultWins || Array(12).fill(null))] };
+  if (!(defaultWin ? Bracket.winByDefault(candidate, i, side) : record(candidate, i, g, side))) return;
 
   // Execute OCC update against the live server
   const expectedVer = versions[active] || 1;
   const res = await API.recordGameOCC({
-    title: active,
+    title,
     expectedVersion: expectedVer,
     matchIndex: i,
     gameIndex: g,
     winnerSide: side,
+    defaultWin,
   });
 
   if (res && res.conflict) {
@@ -145,6 +148,7 @@ async function chooseGame(i, g, side) {
     if (res.current) {
       data[active].names = res.current.names;
       data[active].games = res.current.games;
+      data[active].defaultWins = res.current.defaultWins || Array(12).fill(null);
       versions[active] = res.current.version;
       save();
     }
@@ -152,9 +156,13 @@ async function chooseGame(i, g, side) {
     return;
   }
 
-  if (res && res.success && res.version) {
-    versions[active] = res.version;
+  if (!res?.success) {
+    notify(res?.error || 'Unable to save the result. Please try again.');
+    return;
   }
+  versions[title] = res.version;
+  t.games = res.bracket?.games || candidate.games;
+  t.defaultWins = res.bracket?.defaultWins || candidate.defaultWins;
 
   save();
   showMatch(i);
@@ -167,7 +175,7 @@ async function chooseGame(i, g, side) {
  */
 function matchHTML(i, m, t) {
   const complete = m.winner !== null;
-  return `<button class="match" data-match="${i}" aria-label="Open match ${i + 1}: ${m.seeds.map(s => s === null ? 'To be decided' : esc(t.names[s])).join(' versus ')}"><div class="match-title">${specs[i].title}</div><div class="match-label"><span>M${String(i + 1).padStart(2, '0')} · BO${specs[i].bestOf}</span><span class="${m.ready ? 'ready' : ''}">${complete ? 'COMPLETE' : m.ready ? 'VIEW SERIES ↗' : 'UPCOMING'}</span></div>${m.seeds.map((seed, k) => `<div class="team-row ${seed === null ? 'pending' : ''} ${complete && seed === m.winner ? 'winner' : ''}"><span class="seed">${seed === null ? '—' : String(seed + 1).padStart(2, '0')}</span><span>${seed === null ? sourceLabel(specs[i].sources[k]) : esc(t.names[seed])}</span><span class="score">${complete && seed === m.winner ? '✓ &nbsp; ' : ''}${m.ready ? m.score[k] : '—'}</span></div>`).join('')}</button>`;
+  return `<button class="match" data-match="${i}" aria-label="Open match ${i + 1}: ${m.seeds.map(s => s === null ? 'To be decided' : esc(t.names[s])).join(' versus ')}"><div class="match-title">${specs[i].title}</div><div class="match-label"><span>M${String(i + 1).padStart(2, '0')} · BO${specs[i].bestOf}</span><span class="${m.ready ? 'ready' : ''}">${complete && [0, 1].includes(t.defaultWins?.[i]) ? 'WIN BY DEFAULT' : complete ? 'COMPLETE' : m.ready ? 'VIEW SERIES ↗' : 'UPCOMING'}</span></div>${m.seeds.map((seed, k) => `<div class="team-row ${seed === null ? 'pending' : ''} ${complete && seed === m.winner ? 'winner' : ''}"><span class="seed">${seed === null ? '—' : String(seed + 1).padStart(2, '0')}</span><span>${seed === null ? sourceLabel(specs[i].sources[k]) : esc(t.names[seed])}</span><span class="score">${complete && seed === m.winner ? '✓ &nbsp; ' : ''}${complete && t.defaultWins?.[i] === k ? 'W · DEFAULT' : m.ready ? m.score[k] : '—'}</span></div>`).join('')}</button>`;
 }
 
 /**
@@ -220,16 +228,23 @@ function showMatch(i) {
   const contentEl = $('#match-content');
   if (!contentEl) return;
 
-  contentEl.innerHTML = `<div class="dialog-top"><p class="eyebrow">${active} / M${String(i + 1).padStart(2, '0')} · BO${specs[i].bestOf}</p><button data-close aria-label="Close match">✕</button></div><h2>${specs[i].title}</h2><div class="${isOrg ? 'organizer-notice' : 'viewer-notice'}">${isOrg ? '⚡ Organizer mode: Tap winner to record series results. Conflicting updates will be rejected.' : '👁️ Spectator viewing mode: Match results sync live every 5 seconds.'}</div><div class="series-score"><span>${name(0)}</span><span>${m.score[0]} : ${m.score[1]}</span><span>${name(1)}</span></div><div class="rounds" style="--game-count:${games.length}">${games.map((v, g) => {
+  contentEl.innerHTML = `<div class="dialog-top"><p class="eyebrow">${active} / M${String(i + 1).padStart(2, '0')} · BO${specs[i].bestOf}</p><button data-close aria-label="Close match">✕</button></div><h2>${specs[i].title}</h2><div class="${isOrg ? 'organizer-notice' : 'viewer-notice'}">${isOrg ? '⚡ Organizer mode: Tap winner to record series results. Conflicting updates will be rejected.' : '👁️ Spectator viewing mode: Match results sync live every 5 seconds.'}</div><div class="series-score"><span>${name(0)}</span><span>${m.score[0]} : ${m.score[1]}</span><span>${name(1)}</span></div>${[0, 1].includes(t.defaultWins?.[i]) ? `<p class="default-win-label">${name(t.defaultWins[i])} — WIN BY DEFAULT</p>` : ''}<div class="rounds" style="--game-count:${games.length}">${games.map((v, g) => {
     const skip = gameSkipped(games, g, specs[i].winTarget);
     const locked = !m.ready || (g > 0 && games[g - 1] === null) || skip || !isOrg;
     return `<div class="round"><h3>${active === 'CODM' ? 'MAP' : 'GAME'} 0${g + 1}</h3>${[0, 1].map(k => `<button data-game="${g}" data-side="${k}" ${locked ? 'disabled' : ''} class="${v === k ? 'chosen' : ''}" aria-pressed="${v === k}">${name(k)} &nbsp; ${v === k ? '✓' : '+'}</button>`).join('')}<p>${skip ? 'Not needed' : v !== null ? 'Winner recorded' : locked && !isOrg ? 'Spectator view' : locked ? 'Awaiting prior game' : 'Select winner'}</p></div>`;
-  }).join('')}</div><div class="dialog-bottom"><span>${m.winner === null ? `Best of ${specs[i].bestOf} · ${specs[i].winTarget} wins to take the series` : esc(resultText(i, derive(t), t))}</span><button data-close>Done</button></div>${isOrg ? '<p>To correct a result, tap the winner again. Later games and affected downstream matchups will clear.</p>' : ''}`;
+  }).join('')}</div><div class="dialog-bottom"><span>${m.winner === null ? `Best of ${specs[i].bestOf} · ${specs[i].winTarget} wins to take the series` : esc(resultText(i, derive(t), t))}</span><button data-close>Done</button></div>${isOrg && m.ready ? `<div class="default-win-actions"><p>Award this series by default. The winner advances and the next match remains playable.</p>${[0, 1].map(side => `<button type="button" data-default-side="${side}">${name(side)} wins by default</button>`).join('')}</div>` : ''}${isOrg ? '<p>To correct a result, tap the winner again. Later games and affected downstream matchups will clear.</p>' : ''}`;
 
   contentEl.querySelectorAll('[data-game]').forEach(b => {
     b.onclick = () => chooseGame(i, Number(b.dataset.game), Number(b.dataset.side));
   });
 
+  contentEl.querySelectorAll('[data-default-side]').forEach(button => {
+    button.onclick = () => {
+      const side = Number(button.dataset.defaultSide);
+      if (!API.isOrganizer()) return;
+      if (confirm(`Award ${t.names[m.seeds[side]]} this series by default? This replaces the series score and may clear affected later results.`)) chooseGame(i, 0, side, true);
+    };
+  });
   bindClose();
   const matchDialog = $('#match-dialog');
   if (matchDialog && !matchDialog.open && typeof matchDialog.showModal === 'function') {
@@ -271,6 +286,7 @@ async function syncEveryFiveSeconds() {
     if (serverBracket && serverBracket.version > (versions[title] || 0)) {
       data[title].names = serverBracket.names;
       data[title].games = serverBracket.games;
+      data[title].defaultWins = serverBracket.defaultWins || Array(12).fill(null);
       versions[title] = serverBracket.version;
       hasNewerState = true;
     }
@@ -370,6 +386,7 @@ if (resetBtn) {
       }
 
       data[active].games = blankGames();
+      data[active].defaultWins = Array(12).fill(null);
       save();
       notify(`${active} bracket reset.`);
     }

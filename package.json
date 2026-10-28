@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/engine.cjs && node tests/render.cjs && node tests/streams.cjs && node tests/concurrency.cjs"
+    "test": "node tests/engine.cjs && node tests/default-wins.cjs && node tests/render.cjs && node tests/streams.cjs && node tests/concurrency.cjs"
   },
   "repository": {
     "type": "git",

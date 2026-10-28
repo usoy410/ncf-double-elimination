@@ -123,13 +123,13 @@
    * @param {number} params.winnerSide
    * @returns {Promise<{ success: boolean, conflict?: boolean, version?: number, current?: object, error?: string }>}
    */
-  async function recordGameOCC({ title, expectedVersion, matchIndex, gameIndex, winnerSide }) {
+  async function recordGameOCC({ title, expectedVersion, matchIndex, gameIndex, winnerSide, defaultWin = false }) {
     if (typeof fetch === 'undefined') return { success: false, error: 'Offline' };
     try {
       const res = await fetch('/api/bracket/record', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ title, expectedVersion, matchIndex, gameIndex, winnerSide }),
+        body: JSON.stringify({ title, expectedVersion, matchIndex, gameIndex, winnerSide, defaultWin }),
       });
       const data = await res.json();
       if (res.status === 409) {

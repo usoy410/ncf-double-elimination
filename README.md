@@ -96,3 +96,7 @@ After logging in, organizers can select a game, paste an HTTP(S) broadcast link,
 Final placements sit outside the horizontally scrolling bracket and use four columns on desktop, two on tablets, and one on phones. Team names wrap within each placement card.
 
 `node tests/streams.cjs` exercises the livestream HTTP routes with an isolated database adapter; it does not replace the MongoDB integration suite.
+
+## Wins by default
+
+Organizers can open a ready match and award either team a **win by default**, with confirmation. This awards the entire series (2–0 for BO3 or 3–0 for BO5), advances the winner and routes the loser normally. Later matches remain playable. Bracket cards and match details label the result **WIN BY DEFAULT**. Recording a correction removes that label; changing participants clears affected downstream scores and labels. Awards use the same atomic version checks and audit trail as regular results.
