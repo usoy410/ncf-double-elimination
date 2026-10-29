@@ -5,6 +5,11 @@ const ctx={URL,Bracket:require('../dist/engine.js'),document:{querySelector:elem
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/app.js'),'utf8'),ctx);
 assert.equal((element('#board').innerHTML.match(/data-match=/g)||[]).length,12);
 assert(element('#board').innerHTML.includes('WHO WILL RISE?'));
+assert(element('#placements').innerHTML.includes('25 pts<small>Pending</small>'));
+assert(element('#placements').innerHTML.includes('0.5 pts<small>Pending</small>'));
+vm.runInContext('exportPDF()',ctx);
+assert(element('#print-view').innerHTML.includes('<td>25 (pending)</td>'));
+assert(element('#print-view').innerHTML.includes('<td>0.5 (pending)</td>'));
 const sections=element('#board').innerHTML.split('<section');
 assert(sections.find(s=>s.includes('bracket-group championship')).includes('data-match="11"'));
 assert(!sections.find(s=>s.includes('bracket-group championship')).includes('data-match="8"'));
@@ -15,8 +20,11 @@ vm.runInContext('showMatch(0)',ctx);assert.equal((element('#match-content').inne
 vm.runInContext('for(let i=0;i<12;i++)for(let g=0;g<specs[i].winTarget;g++)record(data.MLBB,i,g,0);render();exportPDF()',ctx);
 assert(!element('#board').innerHTML.includes('WHO WILL RISE?'));
 assert(element('#board').innerHTML.includes('NCF 2026 CHAMPION'));
-const pdf=element('#print-view').innerHTML;assert.equal((pdf.match(/data-match=/g)||[]).length,12);assert(pdf.includes('Game 5'));assert(pdf.includes('FINAL PLACEMENTS'));assert(pdf.includes('M12 · BO5'));assert(!pdf.includes('Reset'));
+const pdf=element('#print-view').innerHTML;assert.equal((pdf.match(/data-match=/g)||[]).length,12);assert(pdf.includes('Game 5'));assert(pdf.includes('FINAL PLACEMENTS'));assert(pdf.includes('<th>Points</th>'));
+for(const points of [25,15,10,7,4,2,1,0.5]) assert(pdf.includes(`<td>${points}</td>`));
+assert(!element('#placements').innerHTML.includes('<small>Pending</small>'));assert(pdf.includes('M12 · BO5'));assert(!pdf.includes('Reset'));
 vm.runInContext("active='CODM';showMatch(11);exportPDF()",ctx);assert(element('#match-content').innerHTML.includes('MAP 05'));assert(element('#print-view').innerHTML.includes('Map 5'));
+console.log('PASS: guideline placement points and pending/awarded states in standings and PDF.');
 console.log('PASS: 12 match cards; BO3/BO5 expanded panels; PDF placements and fifth-game columns; CODM map labels. DOM rendering checked without a browser.');
 
 // Spectators cannot reveal or invoke organizer actions, even without fetch.

@@ -76,3 +76,5 @@ button:active{transform:scale(0.97)}
 .default-win-actions{border-top:1px solid var(--line);margin-top:20px;padding-top:12px;display:flex;flex-wrap:wrap;gap:10px}.default-win-actions p{width:100%;margin:0 0 8px}.default-win-actions button{flex:1 1 180px;min-width:0;overflow-wrap:anywhere;min-height:44px}
 
 .default-win-label{color:var(--gold);font-weight:700;border:1px solid #75613a;padding:10px;border-radius:4px}.match .score{white-space:nowrap;font-size:11px}
+
+.standings li>.placement-points{margin-left:auto;text-align:right;font-size:18px;white-space:nowrap}.standings .placement-points small{font-size:10px;margin:4px 0 0;color:var(--muted)}
