@@ -100,3 +100,7 @@ Final placements sit outside the horizontally scrolling bracket and use four col
 ## Wins by default
 
 Organizers can open a ready match and award either team a **win by default**, with confirmation. This awards the entire series (2–0 for BO3 or 3–0 for BO5), advances the winner and routes the loser normally. Later matches remain playable. Bracket cards and match details label the result **WIN BY DEFAULT**. Recording a correction removes that label; changing participants clears affected downstream scores and labels. Awards use the same atomic version checks and audit trail as regular results.
+
+## Placement points
+
+Under section VII of the NCF Intramurals E-Games Competition Guidelines, 1st–8th place receive **25, 15, 10, 7, 4, 2, 1, and 0.5 points**, respectively. The same allocation applies separately to MLBB and CODM. Final placement cards and PDF exports display these points, marking undecided placements as pending. Points do not change bracket advancement or award extra points for individual games or rounds.
